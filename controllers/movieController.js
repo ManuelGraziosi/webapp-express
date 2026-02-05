@@ -6,14 +6,14 @@ function index(req, res, next) {
     SELECT movies.*, CAST(AVG(reviews.vote) AS FLOAT) AS "avg_vote"
     FROM movies
     LEFT JOIN reviews
-    WHERE movies.id = reviews.movie_id
+    ON movies.id = reviews.movie_id
     GROUP BY movies.id
   `;
 
-  connection.query(moviesQuery, (err, results) => {
+  connection.query(moviesQuery, (err, moviesQueryResults) => {
     if (err) return next(err);
 
-    const movies = results.map((movie) => {
+    const movies = moviesQueryResults.map((movie) => {
       // console.log("movie.created_at", movie.created_at);
       // console.log("typeof(movie.created_at)", typeof movie.created_at);
       return {
@@ -34,24 +34,22 @@ function index(req, res, next) {
   });
 }
 
-function show(req, res) {
+function show(req, res, next) {
   const id = req.params.id;
 
   const movieQuery = `
-    SELECT *
+    SELECT movies.*, CAST(AVG(reviews.vote) AS FLOAT) AS "avg_vote"
     FROM movies
-    WHERE id = ?
+    LEFT JOIN reviews
+    ON movies.id = reviews.movie_id
+    WHERE movies.id = ?
+    GROUP BY movies.id
   `;
 
-  const rewiesQuery = `
-    SELECT *
-    FROM reviews
-    WHERE movie_id = ?
-  `;
-  connection.query(movieQuery, [id], (err, results) => {
+  connection.query(movieQuery, [id], (err, movieQueryresults) => {
     if (err) return next(err);
 
-    if (results.length === 0) {
+    if (movieQueryresults.length === 0) {
       res.status(404);
       return res.json({
         error: "NOT FOUND",
@@ -59,10 +57,36 @@ function show(req, res) {
       });
     }
 
-    const movie = results[0];
+    const movie = movieQueryresults[0];
 
-    return res.json({
-      movie,
+    const reviewsQuery = `
+      SELECT *
+      FROM reviews
+      WHERE movie_id = ?
+    `;
+
+    connection.query(reviewsQuery, [id], (err, reviewsQueryResults) => {
+      if (err) return next(err);
+
+      const reviewsFormatted = reviewsQueryResults.map((curReview) => {
+        return {
+          ...curReview,
+          created_at: DateTime.fromJSDate(curReview.created_at).toISODate(),
+          updated_at: DateTime.fromJSDate(curReview.updated_at).toISODate(),
+        };
+      });
+
+      const movieWithReviews = {
+        ...movie,
+        image: `${process.env.SRV_PATH}/img/${movie.image}`,
+        created_at: DateTime.fromJSDate(movie.created_at).toISODate(),
+        updated_at: DateTime.fromJSDate(movie.updated_at).toISODate(),
+        reviews: reviewsFormatted,
+      };
+
+      return res.json({
+        movieWithReviews,
+      });
     });
   });
 }

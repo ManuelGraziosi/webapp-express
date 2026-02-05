@@ -2,9 +2,16 @@ import express from "express";
 import movieRouter from "./routers/movies.js";
 import handleErrors from "./middlewares/handleErrors.js";
 import handleNotFound from "./middlewares/handleNotFound.js";
+import cors from "cors";
 
 const app = express();
 const port = 3000;
+
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+  }),
+);
 
 app.use(express.static("public"));
 

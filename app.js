@@ -1,6 +1,7 @@
 import express from "express";
-import handleErrors from "./middlewares/handleErrors.js";
 import movieRouter from "./routers/movies.js";
+import handleErrors from "./middlewares/handleErrors.js";
+import handleNotFound from "./middlewares/handleNotFound.js";
 
 const app = express();
 const port = 3000;
@@ -13,6 +14,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/movies", movieRouter);
 
+app.use(handleNotFound);
 app.use(handleErrors);
 
 app.listen(port, () => {

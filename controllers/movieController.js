@@ -53,7 +53,7 @@ function show(req, res, next) {
       res.status(404);
       return res.json({
         error: "NOT FOUND",
-        messate: "Film non trovato",
+        message: "Film non trovato",
       });
     }
 
